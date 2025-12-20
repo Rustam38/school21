@@ -1,0 +1,61 @@
+stages:
+    - build
+    - style
+    - test
+    - deploy
+
+building:
+    stage: build
+    tags:
+      - build
+    script:
+      - cd src/cat
+      - make s21_cat
+      - cd ../grep
+      - make s21_grep
+    artifacts:
+      paths:
+        - src/cat/s21_cat
+        - src/grep/s21_grep
+      expire_in: 30 days
+    after_script:
+      - sh src/notify.sh "Build - CI"
+
+codestyle:
+    stage: style
+    tags:
+      - style
+    script:
+      - cd src/cat
+      - clang-format -n  *.c
+      - clang-format -n  *.h
+      - cd ../grep
+      - clang-format -n  *.c
+      - clang-format -n  *.h
+    after_script:
+      - sh src/notify.sh "Style - CI"
+
+test:
+  stage: test
+  tags:
+    - test
+  script:
+    - cd src/cat
+    - bash cat.sh
+    - cd ../grep
+    - bash grep.sh
+  only:
+    - merge_requests
+    - branches
+  after_script:
+      - sh src/notify.sh "Test - CI"
+
+deploy:
+  stage: deploy
+  tags: 
+    - deploy
+  script:
+    - bash src/deploy.sh
+  when: manual
+  after_script:
+      - sh src/notify.sh "Deploy - CD"
